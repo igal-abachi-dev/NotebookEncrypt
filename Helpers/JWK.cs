@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -81,6 +82,43 @@ public static class JWK
         return Convert.FromBase64String(output);
     }
 
+
+    public static string EncodeCompressed(string input)
+    {
+        string base64Url = Base64UrlEncode(Encoding.UTF8.GetBytes(input));
+        byte[] compressedData = Compress(Encoding.UTF8.GetBytes(base64Url));
+        return Base64UrlEncode(compressedData);
+    }
+
+    public static string DecodeDecompressed(string input)
+    {
+        byte[] decompressedData = Decompress(Base64UrlDecode(input));
+        byte[] decodedBytes = Base64UrlDecode(Encoding.UTF8.GetString(decompressedData));
+        return Encoding.UTF8.GetString(decodedBytes);
+    }
+
+    private static byte[] Compress(byte[] data)
+    {
+        using (var outputStream = new MemoryStream())
+        {
+            using (var brotliStream = new BrotliStream(outputStream, CompressionLevel.Optimal))
+            {
+                brotliStream.Write(data, 0, data.Length);
+            }
+            return outputStream.ToArray();
+        }
+    }
+
+    private static byte[] Decompress(byte[] compressedData)
+    {
+        using (var inputStream = new MemoryStream(compressedData))
+        using (var brotliStream = new BrotliStream(inputStream, CompressionMode.Decompress))
+        using (var outputStream = new MemoryStream())
+        {
+            brotliStream.CopyTo(outputStream);
+            return outputStream.ToArray();
+        }
+    }
     private class RsaJwk
     {
         // JWK fields:
