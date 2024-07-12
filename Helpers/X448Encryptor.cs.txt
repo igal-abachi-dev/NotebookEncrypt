@@ -1,0 +1,37 @@
+﻿//using Org.BouncyCastle.Crypto;
+//using Org.BouncyCastle.Crypto.Generators;
+//using Org.BouncyCastle.Crypto.Parameters;
+//using Org.BouncyCastle.Security;
+//using Org.BouncyCastle.Crypto.Agreement;
+//using System;
+//using System.Text;
+//using System.Security.Cryptography;
+
+namespace NotebookEncrypt.Helpers
+{
+    //internal class X448Encryptor
+    //{
+    //    public static void GenerateKeyPair(out AsymmetricKeyParameter publicKey, out AsymmetricKeyParameter privateKey)
+    //    {
+    //        var generator = new X448KeyPairGenerator();
+    //        generator.Init(new KeyGenerationParameters(new SecureRandom(), 448));
+    //        var keyPair = generator.GenerateKeyPair();
+    //        publicKey = keyPair.Public;
+    //        privateKey = keyPair.Private;
+    //    }
+    //
+    //    private static byte[] GenerateSharedSecret(AsymmetricKeyParameter key)
+    //    {
+    //        var agreement = new X448Agreement();
+    //        agreement.Init(key);
+    //
+    //        var sharedSecret = new byte[56]; // X448 shared secret size
+    //        agreement.CalculateAgreement(key, sharedSecret, 0);
+    //
+    //        using (var sha512 = SHA512.Create())
+    //        {
+    //            return sha512.ComputeHash(sharedSecret);
+    //        }
+    //    }
+    //}
+}

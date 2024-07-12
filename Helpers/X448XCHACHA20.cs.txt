@@ -1,0 +1,67 @@
+﻿//using System;
+//using System.Security.Cryptography;
+//using System.Text;
+//using NSec.Cryptography;
+
+//public class SecurePage
+//{
+//    public byte[] EphemeralPublicKey { get; private set; }
+//    public byte[] EncryptedKeyAndNonce { get; private set; }
+//    public byte[] EncryptedContent { get; private set; }
+//
+//    public static SecurePage EncryptPage(string content, Key recipientPublicKey)
+//    {
+//        var page = new SecurePage();
+//
+//        // Generate a new XChaCha20-Poly1305 key and nonce for the content
+//        var xchacha = new XChaCha20Poly1305();
+//        var contentKey = Key.Create(xchacha);
+//        var contentNonce = new byte[XChaCha20Poly1305.NonceSize];
+//        RandomNumberGenerator.Fill(contentNonce);
+//
+//        // Encrypt the content with XChaCha20-Poly1305
+//        byte[] contentBytes = Encoding.UTF8.GetBytes(content);
+//        page.EncryptedContent = xchacha.Encrypt(contentKey, contentNonce, contentBytes);
+//
+//        // Use X448 to perform key exchange
+//        var x448 = new X448();
+//        var ephemeralKey = Key.Create(x448);
+//        var sharedSecret = x448.Agree(ephemeralKey, recipientPublicKey);
+//
+//        // Use XChaCha20-Poly1305 with the shared secret to encrypt the content key and nonce
+//        var keyAndNonce = new byte[contentKey.Size + contentNonce.Length];
+//        contentKey.Export(KeyBlobFormat.RawSymmetricKey, keyAndNonce.AsSpan(0, contentKey.Size));
+//        Buffer.BlockCopy(contentNonce, 0, keyAndNonce, contentKey.Size, contentNonce.Length);
+//
+//        var wrapKey = Key.Import(xchacha, sharedSecret, KeyBlobFormat.RawSymmetricKey);
+//        var wrapNonce = new byte[XChaCha20Poly1305.NonceSize];
+//        RandomNumberGenerator.Fill(wrapNonce);
+//
+//        page.EncryptedKeyAndNonce = xchacha.Encrypt(wrapKey, wrapNonce, keyAndNonce);
+//        page.EphemeralPublicKey = ephemeralKey.Export(KeyBlobFormat.RawPublicKey);
+//
+//        return page;
+//    }
+//
+//    public static string DecryptPage(SecurePage page, Key recipientPrivateKey)
+//    {
+//        var x448 = new X448();
+//        var xchacha = new XChaCha20Poly1305();
+//
+//        // Recover the shared secret
+//        var ephemeralPublicKey = Key.Import(x448, page.EphemeralPublicKey, KeyBlobFormat.RawPublicKey);
+//        var sharedSecret = x448.Agree(recipientPrivateKey, ephemeralPublicKey);
+//
+//        // Decrypt the content key and nonce
+//        var wrapKey = Key.Import(xchacha, sharedSecret, KeyBlobFormat.RawSymmetricKey);
+//        var keyAndNonce = xchacha.Decrypt(wrapKey, new byte[XChaCha20Poly1305.NonceSize], page.EncryptedKeyAndNonce);
+//
+//        var contentKey = Key.Import(xchacha, keyAndNonce.AsSpan(0, xchacha.KeySize), KeyBlobFormat.RawSymmetricKey);
+//        var contentNonce = keyAndNonce.AsSpan(xchacha.KeySize).ToArray();
+//
+//        // Decrypt the content
+//        var decryptedContent = xchacha.Decrypt(contentKey, contentNonce, page.EncryptedContent);
+//
+//        return Encoding.UTF8.GetString(decryptedContent);
+//    }
+//}
