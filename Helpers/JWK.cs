@@ -1,9 +1,12 @@
 ﻿using System;
+using System.ComponentModel;
 using System.IO.Compression;
+using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Unicode;
 
 public static class JWK
 {
@@ -83,22 +86,22 @@ public static class JWK
     }
 
 
-    public static string EncodeCompressed(string input)
+    public static string CompressString(string input) //compress x2
     {
-        string base64Url = Base64UrlEncode(Encoding.UTF8.GetBytes(input));
-        byte[] compressedData = Compress(Encoding.UTF8.GetBytes(base64Url));
+        //string base64Url = Base64UrlEncode(Encoding.UTF8.GetBytes(input)); //only on byte[]
+        byte[] compressedData = Compress(Encoding.UTF8.GetBytes(input));
         return Base64UrlEncode(compressedData);
     }
 
-    public static string DecodeDecompressed(string input)
+    public static string DecompressString(string input)
     {
         byte[] decompressedData = Decompress(Base64UrlDecode(input));
-        byte[] decodedBytes = Base64UrlDecode(Encoding.UTF8.GetString(decompressedData));
-        return Encoding.UTF8.GetString(decodedBytes);
+        return Encoding.UTF8.GetString(decompressedData);
     }
 
     private static byte[] Compress(byte[] data)
-    {
+    {//Zstandard (Zstd) using ZstdNet;?
+//        removing unnecessary white spaces and newlines.?
         using (var outputStream = new MemoryStream())
         {
             using (var brotliStream = new BrotliStream(outputStream, CompressionLevel.Optimal))

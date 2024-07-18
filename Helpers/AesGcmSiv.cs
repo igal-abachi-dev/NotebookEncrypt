@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace NotebookEncrypt.Helpers
 {
-    public static class AesGcmSiv //now it's aes 256 gcm , will add siv using bouncy castle / libsodium
+    public static class AesGcmSiv // Now it's AES 256 GCM, will add SIV using Bouncy Castle / libsodium
     {
         private const int NonceSize = 12; // 96 bits
         private const int TagSize = 16; // 128 bits
@@ -17,6 +14,7 @@ namespace NotebookEncrypt.Helpers
         {
             return (GenerateKey(KeySize), GenerateNonce());
         }
+
         private static byte[] GenerateNonce()
         {
             byte[] nonce = new byte[NonceSize];
@@ -29,15 +27,16 @@ namespace NotebookEncrypt.Helpers
             byte[] key = new byte[size];
             RandomNumberGenerator.Fill(key);
             return key;
-            //return Convert.ToBase64String(key);
         }
 
         public static string Encrypt(string plaintext, byte[] key, byte[] nonce, byte[] associatedData = null)
         {
-            if (plaintext == null)
-                throw new ArgumentNullException(nameof(plaintext));
+            if (string.IsNullOrEmpty(plaintext))
+                return "";
+
             ValidateKey(key);
-            if (nonce == null || nonce.Length != NonceSize) throw new ArgumentException("Invalid nonce length");
+            if (nonce == null || nonce.Length != NonceSize)
+                throw new ArgumentException("Invalid nonce length");
 
             byte[] plaintextBytes = Encoding.UTF8.GetBytes(plaintext);
             byte[] ciphertext = new byte[plaintextBytes.Length];
@@ -48,15 +47,19 @@ namespace NotebookEncrypt.Helpers
                 aesGcm.Encrypt(nonce, plaintextBytes, ciphertext, tag, associatedData);
             }
 
-            // base64(nonce + encryptedBytes + tag)
-            byte[] encryptedData = new byte[NonceSize + ciphertext.Length + TagSize];
-            Buffer.BlockCopy(nonce, 0, encryptedData, 0, NonceSize);
-            Buffer.BlockCopy(ciphertext, 0, encryptedData, NonceSize, ciphertext.Length);
-            Buffer.BlockCopy(tag, 0, encryptedData, NonceSize + ciphertext.Length, TagSize);
+            // Debug logging
+            //Console.WriteLine($"Nonce (Encrypt): {BitConverter.ToString(nonce)}");
+            //Console.WriteLine($"Ciphertext (Encrypt): {BitConverter.ToString(ciphertext)}");
+            //Console.WriteLine($"Tag (Encrypt): {BitConverter.ToString(tag)}");
+
+            byte[] encryptedData = new byte[ciphertext.Length + TagSize];
+            Buffer.BlockCopy(ciphertext, 0, encryptedData, 0, ciphertext.Length);
+            Buffer.BlockCopy(tag, 0, encryptedData, ciphertext.Length, TagSize);
 
             CryptographicOperations.ZeroMemory(key);
             CryptographicOperations.ZeroMemory(plaintextBytes);
             CryptographicOperations.ZeroMemory(nonce);
+            CryptographicOperations.ZeroMemory(tag);
 
             return Convert.ToBase64String(encryptedData);
         }
@@ -71,27 +74,29 @@ namespace NotebookEncrypt.Helpers
 
         private static void ValidateEncryptedData(byte[] encryptedDataWithNonceAndTag)
         {
-            if (encryptedDataWithNonceAndTag.Length < NonceSize + TagSize)
+            if (encryptedDataWithNonceAndTag.Length < TagSize)
             {
                 throw new ArgumentException("Invalid encrypted text.", nameof(encryptedDataWithNonceAndTag));
             }
         }
 
-        public static string Decrypt(string encryptedText, byte[] key, byte[] associatedData = null)
+        public static string Decrypt(string encryptedText, byte[] key, byte[] nonce, byte[] associatedData = null)
         {
-            if (encryptedText == null)
-                throw new ArgumentNullException(nameof(encryptedText));
+            if (string.IsNullOrEmpty(encryptedText))
+                return "";
 
             byte[] encryptedData = Convert.FromBase64String(encryptedText);
             ValidateEncryptedData(encryptedData);
+            byte[] ciphertext = new byte[encryptedData.Length - TagSize];
+            byte[] tag = new byte[TagSize];
 
-            byte[] nonce = new byte[NonceSize];// iv
-            byte[] ciphertext = new byte[encryptedData.Length - NonceSize - TagSize];
-            byte[] tag = new byte[TagSize];// ADD
-
-            Buffer.BlockCopy(encryptedData, 0, nonce, 0, NonceSize);
-            Buffer.BlockCopy(encryptedData, NonceSize, ciphertext, 0, ciphertext.Length);
-            Buffer.BlockCopy(encryptedData, NonceSize + ciphertext.Length, tag, 0, TagSize);
+            Buffer.BlockCopy(encryptedData, 0, ciphertext, 0, ciphertext.Length);
+            Buffer.BlockCopy(encryptedData, ciphertext.Length, tag, 0, TagSize);
+            
+            // Debug logging
+            //Console.WriteLine($"Nonce (Decrypt): {BitConverter.ToString(nonce)}");
+            //Console.WriteLine($"Ciphertext (Decrypt): {BitConverter.ToString(ciphertext)}");
+            //Console.WriteLine($"Tag (Decrypt): {BitConverter.ToString(tag)}");
 
             using (var aesGcm = new AesGcm(key))
             {
@@ -99,15 +104,19 @@ namespace NotebookEncrypt.Helpers
                 try
                 {
                     aesGcm.Decrypt(nonce, ciphertext, tag, plaintextBytes, associatedData);
+                    //Console.WriteLine($"Decryption successful. Plaintext: {BitConverter.ToString(plaintextBytes)}");
                 }
-                catch (CryptographicException)
+                catch (CryptographicException ex)
                 {
-                    throw new ArgumentException("Invalid encrypted data.", nameof(encryptedText));
+                    //Console.WriteLine($"Exception: {ex.Message}");
+                    throw new ArgumentException("Invalid encrypted data or authentication tag mismatch.", nameof(encryptedText), ex);
                 }
                 finally
                 {
                     CryptographicOperations.ZeroMemory(key);
                     CryptographicOperations.ZeroMemory(nonce);
+                    CryptographicOperations.ZeroMemory(tag);
+                    CryptographicOperations.ZeroMemory(ciphertext);
                 }
 
                 return Encoding.UTF8.GetString(plaintextBytes);
