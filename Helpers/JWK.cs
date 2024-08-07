@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.IO.Compression;
 using System.Reflection.Metadata.Ecma335;
@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Unicode;
+//using QRCoder;
 
 public static class JWK
 {
@@ -85,12 +86,63 @@ public static class JWK
         return Convert.FromBase64String(output);
     }
 
+    /*
+    public static MemoryStream GenQrCode(string data)
+    {
+        using (var qrGenerator = new QRCodeGenerator())
+        {
+            var qrCodeData = qrGenerator.CreateQrCode(data, QRCodeGenerator.ECCLevel.H);
+            using (var qrCode = new QRCode(qrCodeData))
+            {
+                using (var qrCodeImage = qrCode.GetGraphic(30))
+                {
+                    var memoryStream = new MemoryStream();
+                    qrCodeImage.Save(memoryStream, ImageFormat.Png);
+                    memoryStream.Position = 0; // Reset the stream position to the beginning
+                    return memoryStream;
+                }
+            }
+        }
+    }
+    */
 
+    /*
+using Aspose.Words;
+using Aspose.Words.Drawing;
+
+using System.Drawing;
+using System.Drawing.Imaging;
+    
+      MemoryStream qrCodeStream = GenQrCode(data);
+
+        // Load the DOCX template
+        Document doc = new Document("template.docx");
+
+        // Find the placeholder and replace it with the QR code image
+        foreach (Run run in doc.GetChildNodes(NodeType.Run, true))
+        {
+            if (run.Text.Contains("${name}"))
+            {
+                run.Text = run.Text.Replace("${name}", ""); // Remove the placeholder text
+
+                // Create a builder to insert the image
+                DocumentBuilder builder = new DocumentBuilder(doc);
+                builder.MoveTo(run);
+                builder.InsertImage(qrCodeStream, RelativeHorizontalPosition.Margin, 0,
+                                    RelativeVerticalPosition.Margin, 0,
+                                    150, 150, // Set the size of the QR code image
+                                    WrapType.Inline);
+            }
+        }
+
+        // Save the document as a PDF
+        doc.Save("output.pdf");
+     */
     public static string CompressString(string input) //compress x2
     {
         //string base64Url = Base64UrlEncode(Encoding.UTF8.GetBytes(input)); //only on byte[]
         byte[] compressedData = Compress(Encoding.UTF8.GetBytes(input));
-        return Base64UrlEncode(compressedData);
+        return Base64UrlEncode(compressedData);//then to qr code 2005+ , use qrcoder & aspose pdf from docx template with placeholders
     }
 
     public static string DecompressString(string input)
